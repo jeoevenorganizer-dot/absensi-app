@@ -1,0 +1,16 @@
+{
+  "short_name": "Absensi JEO",
+  "name": "Aplikasi Absensi JEO",
+  "icons": [
+    {
+      "src": "icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "/index.html",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "display": "standalone"
+}

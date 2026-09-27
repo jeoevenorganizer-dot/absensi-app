@@ -14,34 +14,56 @@
     th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
     th { background-color: #2e7d32; color: white; }
     img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
+    
+    /* Sembunyikan konten sebelum login */
+    #main-content { display: none; }
   </style>
 </head>
 <body>
 
-  <h2>Dashboard Rekap Absensi</h2>
-  <button class="btn" onclick="downloadExcel()">Download Excel</button>
+  <div id="main-content">
+    <h2>Dashboard Rekap Absensi</h2>
+    <button class="btn" onclick="downloadExcel()">Download Excel</button>
 
-  <table id="tabel-absensi">
-    <thead>
-      <tr>
-        <th>No</th>
-        <th>Waktu</th>
-        <th>Nama</th>
-        <th>Foto</th>
-        <th>Lokasi GPS</th>
-      </tr>
-    </thead>
-    <tbody id="data-absensi">
-      <tr><td colspan="5">Memuat data...</td></tr>
-    </tbody>
-  </table>
+    <table id="tabel-absensi">
+      <thead>
+        <tr>
+          <th>No</th>
+          <th>Waktu</th>
+          <th>Nama</th>
+          <th>Foto</th>
+          <th>Lokasi GPS</th>
+        </tr>
+      </thead>
+      <tbody id="data-absensi">
+        <tr><td colspan="5">Memuat data...</td></tr>
+      </tbody>
+    </table>
+  </div>
 
   <script>
+    // 1. ATUR PASSWORD ADMIN DI SINI
+    const ADMIN_PASSWORD = "admin123"; // Ganti sesuai kata sandi yang Anda inginkan
+
+    // 2. KREDENSIAL SUPABASE
     const SUPABASE_URL = 'https://gbrbgvjegakneaplcmuu.supabase.co';
     const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdicmJndmplZ2FrbmVhcGxjbXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MjQyNDcsImV4cCI6MjEwNjEwMDI0N30.ZtwH_G9C10K5kF2SFvpth2cuz25cu4zW-czyCoy4pWo';
 
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     let rawData = [];
+
+    // Fungsi Verifikasi Password
+    function checkAuth() {
+      const inputPass = prompt("Masukkan Kata Sandi Admin:");
+      
+      if (inputPass === ADMIN_PASSWORD) {
+        document.getElementById('main-content').style.display = 'block';
+        loadData();
+      } else {
+        alert("Kata sandi salah! Akses ditolak.");
+        window.location.href = "index.html"; // Lempar kembali ke halaman utama
+      }
+    }
 
     async function loadData() {
       const { data, error } = await supabaseClient
@@ -99,7 +121,8 @@
       XLSX.writeFile(workbook, "Rekap_Absensi.xlsx");
     }
 
-    loadData();
+    // Jalankan pemeriksaan kata sandi saat halaman dimuat
+    checkAuth();
   </script>
 </body>
 </html>

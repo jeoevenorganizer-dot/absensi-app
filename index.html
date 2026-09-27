@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Form Absensi Online</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; max-width: 400px; margin: auto; background-color: #f4f6f9; }
+    .card { background: white; padding: 20px; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    h2 { text-align: center; color: #333; margin-top: 0; }
+    label { font-weight: bold; margin-top: 10px; display: block; }
+    input, button { width: 100%; margin-top: 8px; padding: 12px; box-sizing: border-box; border-radius: 6px; border: 1px solid #ccc; font-size: 14px; }
+    button { background-color: #28a745; color: white; border: none; font-size: 16px; font-weight: bold; margin-top: 20px; cursor: pointer; }
+    #preview { width: 100%; margin-top: 10px; border-radius: 6px; display: none; }
+    #status { font-weight: bold; text-align: center; margin-top: 15px; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Form Absensi</h2>
+    
+    <label for="nama">Nama Lengkap:</label>
+    <input type="text" id="nama" placeholder="Masukkan nama..." required>
+
+    <label for="foto">Foto Absensi:</label>
+    <input type="file" id="foto" accept="image/*" capture="user" required>
+    <img id="preview" alt="Preview Foto">
+
+    <button onclick="kirimAbsensi()">KIRIM ABSENSI</button>
+
+    <p id="status"></p>
+  </div>
+
+    <script>
+    // Konfigurasi Supabase
+    const SUPABASE_URL = 'https://gbrbgvjegakneaplcmuu.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdicmJndmplZ2FrbmVhcGxjbXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MjQyNDcsImV4cCI6MjEwNjEwMDI0N30.ZtwH_G9C10K5kF2SFvpth2cuz25cu4zW-czyCoy4pWo';
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let userLocation = "Lokasi tidak ditemukan";
+
+    // Mengambil koordinat GPS HP secara otomatis
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        userLocation = `${position.coords.latitude}, ${position.coords.longitude}`;
+      }, () => {
+        userLocation = "Akses lokasi ditolak";
+      });
+    }
+
+    // Menampilkan preview foto setelah diambil dari kamera
+    document.getElementById('foto').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (file) {
+        const reader = new FileReader();
+        reader.onload = function(event) {
+          const img = document.getElementById('preview');
+          img.src = event.target.result;
+          img.style.display = 'block';
+        }
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Proses pengiriman data ke Supabase
+    async function kirimAbsensi() {
+      const nama = document.getElementById('nama').value;
+      const fileInput = document.getElementById('foto');
+      const status = document.getElementById('status');
+
+      if (!nama || fileInput.files.length === 0) {
+        alert("Harap isi nama dan ambil foto terlebih dahulu!");
+        return;
+      }
+
+      status.style.color = "blue";
+      status.innerText = "Mengirim data...";
+
+      const file = fileInput.files[0];
+      const fileName = `${Date.now()}_${file.name}`;
+
+      // 1. Unggah Foto ke Storage Supabase
+      const { data: uploadData, error: uploadError } = await supabaseClient.storage
+        .from('foto-absensi')
+        .upload(fileName, file);
+
+      if (uploadError) {
+        status.style.color = "red";
+        status.innerText = "Gagal mengunggah foto: " + uploadError.message;
+        return;
+      }
+
+      // 2. Ambil Link Publik Foto
+      const { data: urlData } = supabaseClient.storage
+        .from('foto-absensi')
+        .getPublicUrl(fileName);
+
+      const fotoUrl = urlData.publicUrl;
+
+      // 3. Simpan Data ke Tabel Database
+      const { error: insertError } = await supabaseClient
+        .from('absensi')
+        .insert([{ nama: nama, foto_url: fotoUrl, lokasi: userLocation }]);
+
+      if (insertError) {
+        status.style.color = "red";
+        status.innerText = "Gagal menyimpan absensi: " + insertError.message;
+      } else {
+        status.style.color = "green";
+        status.innerText = "Absensi Berhasil Terkirim!";
+        document.getElementById('nama').value = '';
+        document.getElementById('foto').value = '';
+        document.getElementById('preview').style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>

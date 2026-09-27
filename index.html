@@ -19,7 +19,7 @@
 <body>
 
   <div class="card">
-    <h2>Form Absensi</h2>
+    <h2>Absen cah-cah JEO</h2>
     
     <label for="nama">Nama Lengkap:</label>
     <input type="text" id="nama" placeholder="Masukkan nama..." required>
@@ -28,7 +28,7 @@
     <input type="file" id="foto" accept="image/*" capture="user" required>
     <img id="preview" alt="Preview Foto">
 
-    <button onclick="kirimAbsensi()">KIRIM ABSENSI</button>
+    <button onclick="kirimAbsensi()">KIRIM SAIKI</button>
 
     <p id="status"></p>
   </div>
@@ -109,7 +109,7 @@
         status.innerText = "Gagal menyimpan absensi: " + insertError.message;
       } else {
         status.style.color = "green";
-        status.innerText = "Absensi Berhasil Terkirim!";
+        status.innerText = "MATURNUWUN CAH,SING SEMANGAT NYAMBUT GAWE!";
         document.getElementById('nama').value = '';
         document.getElementById('foto').value = '';
         document.getElementById('preview').style.display = 'none';

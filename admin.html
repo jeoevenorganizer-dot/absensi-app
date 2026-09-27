@@ -5,115 +5,98 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Admin Absensi</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <!-- Library untuk Export Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <style>
-    body { font-family: Arial, sans-serif; padding: 15px; margin: 0; background-color: #f4f6f9; }
-    h2 { text-align: center; color: #333; }
-    .header-actions { display: flex; justify-content: space-between; margin-bottom: 15px; }
-    button { background-color: #0275d8; color: white; border: none; padding: 10px 15px; border-radius: 5px; font-weight: bold; cursor: pointer; }
-    button.excel-btn { background-color: #28a745; }
-    .table-responsive { overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-    table { width: 100%; border-collapse: collapse; min-width: 600px; }
-    th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 14px; }
-    th { background-color: #007bff; color: white; }
-    img.thumb { width: 50px; height: 50px; object-fit: cover; border-radius: 4px; }
+    body { font-family: sans-serif; padding: 20px; background-color: #f4f6f9; }
+    h2 { color: #333; }
+    .btn { padding: 10px 15px; background-color: #107c41; color: white; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; margin-bottom: 15px; }
+    table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #ddd; }
+    th { background-color: #2e7d32; color: white; }
+    img { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; }
   </style>
 </head>
 <body>
 
-  <h2>Dashboard Admin Absensi</h2>
+  <h2>Dashboard Rekap Absensi</h2>
+  <button class="btn" onclick="downloadExcel()">Download Excel</button>
 
-  <div class="header-actions">
-    <button onclick="loadData()">Refresh Data</button>
-    <button class="excel-btn" onclick="exportKeExcel()">Download Excel</button>
-  </div>
+  <table id="tabel-absensi">
+    <thead>
+      <tr>
+        <th>No</th>
+        <th>Waktu</th>
+        <th>Nama</th>
+        <th>Foto</th>
+        <th>Lokasi GPS</th>
+      </tr>
+    </thead>
+    <tbody id="data-absensi">
+      <tr><td colspan="5">Memuat data...</td></tr>
+    </tbody>
+  </table>
 
-  <div class="table-responsive">
-    <table>
-      <thead>
-        <tr>
-          <th>Waktu</th>
-          <th>Nama</th>
-          <th>Lokasi (GPS)</th>
-          <th>Foto</th>
-        </tr>
-      </thead>
-      <tbody id="data-absensi">
-        <tr>
-          <td colspan="4" style="text-align: center;">Memuat data...</td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-
-    <script>
-    // Konfigurasi Supabase
+  <script>
     const SUPABASE_URL = 'https://gbrbgvjegakneaplcmuu.supabase.co';
-    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdicmJndmplZ2FrbmVhcGxjbXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MjQyNDcsImV4cCI6MjEwNjEwMDI0N30.ZtwH_G9C10K5kF2SFvpth2cuz25cu4zW-czyCoy4pWo';
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdicmJndmplZ2FrbmVhcGxjbXV1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA1MjQyNDcsImV4cCI6MjEwNjEwMDI0N30.ZtwH_G9C10K5kF2SFvpth2cuz25cu4zW-czyCoy4pWo';
 
-    let rawDataAbsensi = [];
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    let rawData = [];
 
-    // Fungsi Mengambil Data dari Supabase
     async function loadData() {
-      const tbody = document.getElementById('data-absensi');
-      tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Memuat data...</td></tr>';
-
       const { data, error } = await supabaseClient
         .from('absensi')
         .select('*')
         .order('created_at', { ascending: false });
 
       if (error) {
-        tbody.innerHTML = `<tr><td colspan="4" style="color: red;">Gagal memuat: ${error.message}</td></tr>`;
+        alert('Gagal mengambil data: ' + error.message);
         return;
       }
 
-      rawDataAbsensi = data;
+      rawData = data;
+      const tbody = document.getElementById('data-absensi');
+      tbody.innerHTML = '';
 
       if (data.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="4" style="text-align: center;">Belum ada data absensi.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5">Belum ada data absensi.</td></tr>';
         return;
       }
 
-      tbody.innerHTML = '';
-      data.forEach(item => {
-        const dateObj = new Date(item.created_at);
-        const waktuFormatted = dateObj.toLocaleString('id-ID');
-        const mapUrl = item.lokasi.includes(',') ? `https://maps.google.com/?q=${item.lokasi}` : '#';
-
+      data.forEach((row, index) => {
+        const date = new Date(row.created_at).toLocaleString('id-ID');
+        const mapsUrl = `https://www.google.com/maps?q=${row.lokasi}`;
+        
         const tr = document.createElement('tr');
         tr.innerHTML = `
-          <td>${waktuFormatted}</td>
-          <td><b>${item.nama}</b></td>
-          <td><a href="${mapUrl}" target="_blank">${item.lokasi}</a></td>
-          <td><a href="${item.foto_url}" target="_blank"><img src="${item.foto_url}" class="thumb" alt="Foto"></a></td>
+          <td>${index + 1}</td>
+          <td>${date}</td>
+          <td>${row.nama || '-'}</td>
+          <td><a href="${row.foto_url}" target="_blank"><img src="${row.foto_url}" alt="Foto"></a></td>
+          <td><a href="${mapsUrl}" target="_blank">${row.lokasi || '-'}</a></td>
         `;
         tbody.appendChild(tr);
       });
     }
 
-    // Fungsi Export Data ke file Excel (.xlsx)
-    function exportKeExcel() {
-      if (rawDataAbsensi.length === 0) {
-        alert("Tidak ada data untuk di-download!");
+    function downloadExcel() {
+      if (rawData.length === 0) {
+        alert('Tidak ada data untuk diunduh');
         return;
       }
 
-      const excelData = rawDataAbsensi.map(item => ({
-        "Waktu Absen": new Date(item.created_at).toLocaleString('id-ID'),
-        "Nama Lengkap": item.nama,
-        "Koordinat Lokasi": item.lokasi,
-        "Link Foto": item.foto_url
+      const excelData = rawData.map((item, index) => ({
+        No: index + 1,
+        Waktu: new Date(item.created_at).toLocaleString('id-ID'),
+        Nama: item.nama,
+        Foto_URL: item.foto_url,
+        Lokasi: item.lokasi
       }));
 
       const worksheet = XLSX.utils.json_to_sheet(excelData);
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, worksheet, "Data Absensi");
-
-      const namaFile = `Rekap_Absensi_${new Date().toISOString().slice(0,10)}.xlsx`;
-      XLSX.writeFile(workbook, namaFile);
+      XLSX.utils.book_append_sheet(workbook, worksheet, "Rekap Absensi");
+      XLSX.writeFile(workbook, "Rekap_Absensi.xlsx");
     }
 
     loadData();
